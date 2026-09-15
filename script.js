@@ -3,7 +3,7 @@
    ================================================================ */
 
 // ─── Configuration ───
-const API_URL = "https://mindmetric-ai-1.onrender.com"; // Change to your deployed API URL
+const API_URL = "https://mindmetric-ai-d3in.onrender.com"; // Change to your deployed API URL
 
 // ─── DOM References ───
 const form          = document.getElementById("prediction-form");
