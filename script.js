@@ -1,328 +1,388 @@
-/* ==========================================================================
-   MindMetric-AI — script.js
-   Handles: mobile nav, scroll-reveal, form validation, API call, result render
-   ========================================================================== */
+/* ================================================================
+   MindLens — Application Logic
+   ================================================================ */
 
-// Backend base URL — change this single value when deploying.
-const API_URL = "https://mindmetric-ai-d3in.onrender.com";
+// ─── Configuration ───
+const API_URL = "https://mindmetric-ai-1.onrender.com"; // Change to your deployed API URL
 
-/* ---------------------------------------------------------------------- */
-/* Mobile navigation                                                      */
-/* ---------------------------------------------------------------------- */
-(function initNav() {
-  const hamburger = document.getElementById("hamburgerBtn");
-  const navLinks = document.getElementById("navLinks");
+// ─── DOM References ───
+const form          = document.getElementById("prediction-form");
+const submitBtn     = document.getElementById("submit-btn");
+const resetBtn      = document.getElementById("reset-btn");
+const formError     = document.getElementById("form-error");
+const formErrorText = document.getElementById("form-error-text");
+const resultArea    = document.getElementById("result-area");
+const resultScore   = document.getElementById("result-score");
+const resultBarFill = document.getElementById("result-bar-fill");
+const resultInsight = document.getElementById("result-insight");
+const newPredBtn    = document.getElementById("new-prediction-btn");
 
-  hamburger.addEventListener("click", () => {
-    const isOpen = navLinks.classList.toggle("is-open");
-    hamburger.classList.toggle("is-open", isOpen);
-    hamburger.setAttribute("aria-expanded", String(isOpen));
-  });
-
-  navLinks.querySelectorAll("a").forEach((link) => {
-    link.addEventListener("click", () => {
-      navLinks.classList.remove("is-open");
-      hamburger.classList.remove("is-open");
-      hamburger.setAttribute("aria-expanded", "false");
-    });
-  });
-})();
-
-/* ---------------------------------------------------------------------- */
-/* Scroll reveal (single, restrained fade-in on entry)                    */
-/* ---------------------------------------------------------------------- */
-(function initReveal() {
-  const targets = document.querySelectorAll(".fade-in");
-  if (!("IntersectionObserver" in window)) {
-    targets.forEach((el) => el.classList.add("is-visible"));
-    return;
-  }
-  const observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add("is-visible");
-          observer.unobserve(entry.target);
-        }
-      });
-    },
-    { threshold: 0.15 }
-  );
-  targets.forEach((el) => observer.observe(el));
-})();
-
-/* ---------------------------------------------------------------------- */
-/* Toast helper                                                           */
-/* ---------------------------------------------------------------------- */
-let toastTimer = null;
-function showToast(message, type = "error") {
-  const toast = document.getElementById("toast");
-  toast.textContent = message;
-  toast.classList.toggle("is-error", type === "error");
-  toast.classList.add("is-visible");
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.remove("is-visible"), 5000);
-}
-
-/* ---------------------------------------------------------------------- */
-/* Validation rules — mirrors the FastAPI Pydantic constraints exactly    */
-/* ---------------------------------------------------------------------- */
-const RULES = {
-  age: { type: "number", min: 10, max: 100, label: "Age" },
-  gender: { type: "select", label: "Gender" },
-  country: { type: "text", label: "Country" },
-  academic_level: { type: "select", label: "Academic level" },
-  most_used_platform: { type: "select", label: "Most used platform" },
-  purpose_of_use: { type: "select", label: "Purpose of use" },
-  avg_daily_usage_hours: { type: "number", min: 0, max: 24, label: "Average daily usage hours" },
-  daily_unlocks: { type: "number", min: 0, max: Infinity, label: "Daily unlocks" },
-  study_hours: { type: "number", min: 0, max: 24, label: "Study hours" },
-  physical_activity_hours: { type: "number", min: 0, max: 24, label: "Physical activity hours" },
-  sleep_hours_per_night: { type: "number", min: 0, max: 24, label: "Sleep hours per night" },
-  stress_level: { type: "select", label: "Stress level" },
+// ─── Field Definitions ───
+// Maps field IDs to their validation rules
+const FIELDS = {
+  age:                     { type: "int",    min: 10,  max: 100, required: true, label: "Age"                   },
+  gender:                  { type: "select",                     required: true, label: "Gender"                 },
+  country:                 { type: "text",                       required: true, label: "Country"                },
+  academic_level:          { type: "select",                     required: true, label: "Academic Level"         },
+  most_used_platform:      { type: "select",                     required: true, label: "Most Used Platform"     },
+  purpose_of_use:          { type: "select",                     required: true, label: "Purpose of Use"         },
+  avg_daily_usage_hours:   { type: "float",  min: 0,   max: 24, required: true, label: "Avg. Daily Usage"       },
+  daily_unlocks:           { type: "int",    min: 0,             required: true, label: "Daily Unlocks"          },
+  study_hours:             { type: "float",  min: 0,   max: 24, required: true, label: "Study Hours"            },
+  physical_activity_hours: { type: "float",  min: 0,   max: 24, required: true, label: "Physical Activity"      },
+  sleep_hours_per_night:   { type: "float",  min: 0,   max: 24, required: true, label: "Sleep Hours"            },
+  stress_level:            { type: "select",                     required: true, label: "Stress Level"           },
 };
 
-function clearFieldError(name) {
-  const field = document.getElementById(name).closest(".field");
-  const errorEl = field.querySelector(`[data-error-for="${name}"]`);
-  field.classList.remove("has-error");
+// ================================================================
+//  Validation
+// ================================================================
+
+/**
+ * Validate a single field and show/clear its error message.
+ * Returns true if valid, false otherwise.
+ */
+function validateField(id, rule) {
+  const el       = document.getElementById(id);
+  const errorEl  = document.getElementById(`${id}-error`);
+  const value    = el.value.trim();
+
+  // Clear previous state
+  el.classList.remove("field__input--invalid");
   errorEl.textContent = "";
+
+  // Required check
+  if (rule.required && value === "") {
+    setFieldError(el, errorEl, `${rule.label} is required.`);
+    return false;
+  }
+
+  if (value === "") return true; // optional & empty → ok
+
+  // Numeric checks
+  if (rule.type === "int" || rule.type === "float") {
+    const num = Number(value);
+
+    if (isNaN(num)) {
+      setFieldError(el, errorEl, `${rule.label} must be a number.`);
+      return false;
+    }
+
+    if (rule.type === "int" && !Number.isInteger(num)) {
+      setFieldError(el, errorEl, `${rule.label} must be a whole number.`);
+      return false;
+    }
+
+    if (rule.min !== undefined && num < rule.min) {
+      setFieldError(el, errorEl, `Minimum value is ${rule.min}.`);
+      return false;
+    }
+
+    if (rule.max !== undefined && num > rule.max) {
+      setFieldError(el, errorEl, `Maximum value is ${rule.max}.`);
+      return false;
+    }
+  }
+
+  return true;
 }
 
-function setFieldError(name, message) {
-  const field = document.getElementById(name).closest(".field");
-  const errorEl = field.querySelector(`[data-error-for="${name}"]`);
-  field.classList.add("has-error");
+function setFieldError(inputEl, errorEl, message) {
+  inputEl.classList.add("field__input--invalid");
+  inputEl.classList.remove("field__input--shake");
+  // Force reflow to re-trigger CSS shake animation
+  void inputEl.offsetWidth;
+  inputEl.classList.add("field__input--shake");
   errorEl.textContent = message;
 }
 
 /**
- * Validates the whole form against RULES.
- * Returns { valid: boolean, data: object|null }
+ * Validate all fields. Returns true if every field is valid.
  */
-function validateForm(form) {
-  let valid = true;
-  const data = {};
+function validateAll() {
+  let firstInvalid = null;
+  let allValid = true;
 
-  Object.entries(RULES).forEach(([name, rule]) => {
-    clearFieldError(name);
-    const el = form.elements[name];
-    const rawValue = el.value.trim();
-
-    if (rawValue === "") {
-      setFieldError(name, `${rule.label} is required.`);
-      valid = false;
-      return;
+  for (const [id, rule] of Object.entries(FIELDS)) {
+    const valid = validateField(id, rule);
+    if (!valid && !firstInvalid) {
+      firstInvalid = document.getElementById(id);
     }
+    if (!valid) allValid = false;
+  }
 
-    if (rule.type === "number") {
-      const num = Number(rawValue);
-      if (Number.isNaN(num)) {
-        setFieldError(name, `${rule.label} must be a number.`);
-        valid = false;
-        return;
-      }
-      if (num < rule.min || num > rule.max) {
-        const maxLabel = rule.max === Infinity ? "" : ` and ${rule.max}`;
-        setFieldError(name, `${rule.label} must be between ${rule.min}${maxLabel}.`);
-        valid = false;
-        return;
-      }
-      data[name] = name === "daily_unlocks" ? Math.round(num) : num;
-    } else {
-      data[name] = rawValue;
-    }
-  });
+  // Scroll first invalid field into view
+  if (firstInvalid) {
+    firstInvalid.focus();
+    firstInvalid.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
 
-  return { valid, data };
+  return allValid;
 }
 
-/* ---------------------------------------------------------------------- */
-/* Score ring + interpretation                                            */
-/* ---------------------------------------------------------------------- */
-const RING_CIRCUMFERENCE = 2 * Math.PI * 86; // r = 86
+// ================================================================
+//  Payload Builder
+// ================================================================
 
-function interpretScore(score) {
-  // A single monochrome stroke color keeps the ring consistent with the
-  // black & white theme — the tier is communicated through the label text,
-  // not through color-coding.
-  if (score >= 8) {
-    return {
-      tag: "Excellent",
-      color: "#111111",
-      message: "Your predicted score indicates a generally positive mental-health profile based on the information provided.",
-    };
-  }
-  if (score >= 6) {
-    return {
-      tag: "Good",
-      color: "#111111",
-      message: "Your predicted score indicates a generally positive mental-health profile based on the information provided.",
-    };
-  }
-  if (score >= 4) {
-    return {
-      tag: "Moderate",
-      color: "#111111",
-      message: "Your predicted score suggests some areas of your lifestyle may deserve additional attention.",
-    };
-  }
+function buildPayload() {
   return {
-    tag: "Needs attention",
-    color: "#111111",
-    message: "Your predicted score suggests that some lifestyle or stress-related factors may need attention. Consider speaking with a qualified professional if you are concerned.",
+    age:                     parseInt(document.getElementById("age").value, 10),
+    gender:                  document.getElementById("gender").value,
+    country:                 document.getElementById("country").value.trim(),
+    academic_level:          document.getElementById("academic_level").value,
+    most_used_platform:      document.getElementById("most_used_platform").value,
+    purpose_of_use:          document.getElementById("purpose_of_use").value,
+    avg_daily_usage_hours:   parseFloat(document.getElementById("avg_daily_usage_hours").value),
+    daily_unlocks:           parseInt(document.getElementById("daily_unlocks").value, 10),
+    study_hours:             parseFloat(document.getElementById("study_hours").value),
+    physical_activity_hours: parseFloat(document.getElementById("physical_activity_hours").value),
+    sleep_hours_per_night:   parseFloat(document.getElementById("sleep_hours_per_night").value),
+    stress_level:            document.getElementById("stress_level").value,
   };
 }
 
-function animateRing(score) {
-  const progress = document.getElementById("scoreRingProgress");
-  const clamped = Math.max(0, Math.min(10, score));
-  const offset = RING_CIRCUMFERENCE * (1 - clamped / 10);
-  const { color } = interpretScore(score);
-  progress.style.stroke = color;
-  // reset then animate
-  progress.style.transition = "none";
-  progress.style.strokeDasharray = String(RING_CIRCUMFERENCE);
-  progress.style.strokeDashoffset = String(RING_CIRCUMFERENCE);
-  // force reflow before enabling transition
-  // eslint-disable-next-line no-unused-expressions
-  progress.getBoundingClientRect();
-  progress.style.transition = "stroke-dashoffset 1.1s cubic-bezier(0.22,1,0.36,1)";
-  requestAnimationFrame(() => {
-    progress.style.strokeDashoffset = String(offset);
-  });
-}
+// ================================================================
+//  API Call
+// ================================================================
 
-function animateCounter(el, target, duration = 1100) {
-  const start = performance.now();
-  function tick(now) {
-    const elapsed = now - start;
-    const t = Math.min(1, elapsed / duration);
-    const eased = 1 - Math.pow(1 - t, 3);
-    const value = (target * eased).toFixed(1);
-    el.textContent = value;
-    if (t < 1) requestAnimationFrame(tick);
-    else el.textContent = target.toFixed(2);
+async function predict(payload) {
+  const response = await fetch(`${API_URL}/predict`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    let detail = "Something went wrong. Please try again.";
+    try {
+      const body = await response.json();
+      if (body.detail) {
+        // FastAPI validation errors come as an array
+        if (Array.isArray(body.detail)) {
+          detail = body.detail.map(e => e.msg).join(" ");
+        } else {
+          detail = String(body.detail);
+        }
+      }
+    } catch (_) { /* ignore parse errors */ }
+    throw new Error(detail);
   }
-  requestAnimationFrame(tick);
+
+  return response.json();
 }
 
-const SUMMARY_FIELDS = [
-  { key: "age", label: "Age" },
-  { key: "academic_level", label: "Academic Level" },
-  { key: "most_used_platform", label: "Social Platform" },
-  { key: "avg_daily_usage_hours", label: "Daily Usage" },
-  { key: "study_hours", label: "Study Hours" },
-  { key: "physical_activity_hours", label: "Physical Activity" },
-  { key: "sleep_hours_per_night", label: "Sleep" },
-  { key: "stress_level", label: "Stress Level" },
-];
+// ================================================================
+//  Result Rendering
+// ================================================================
 
-function renderSummary(data) {
-  const grid = document.getElementById("summaryGrid");
-  grid.innerHTML = "";
-  SUMMARY_FIELDS.forEach(({ key, label }) => {
-    const item = document.createElement("div");
-    item.className = "summary-item";
-    const unit = ["avg_daily_usage_hours", "study_hours", "physical_activity_hours", "sleep_hours_per_night"].includes(key) ? " hrs" : "";
-    item.innerHTML = `<span>${label}</span><strong>${data[key]}${unit}</strong>`;
-    grid.appendChild(item);
-  });
+/**
+ * Map a score (assumed 0–10 scale) to a color and insight message.
+ */
+function getScoreInfo(score) {
+  if (score <= 3.5) {
+    return {
+      color: "#10b981", // green
+      level: "good",
+      message: `A score of ${score} suggests relatively positive mental wellbeing based on the provided inputs. The lifestyle and usage patterns appear balanced.`,
+    };
+  }
+  if (score <= 6.5) {
+    return {
+      color: "#f59e0b", // amber
+      level: "medium",
+      message: `A score of ${score} indicates a moderate level of mental health strain. Some factors in the provided inputs may warrant attention.`,
+    };
+  }
+  return {
+    color: "#ef4444", // red
+    level: "low",
+    message: `A score of ${score} suggests elevated mental health strain based on the provided inputs. Multiple lifestyle or usage factors may be contributing.`,
+  };
 }
 
-function renderResult(score, data) {
-  const placeholder = document.getElementById("resultPlaceholder");
-  const content = document.getElementById("resultContent");
-  placeholder.hidden = true;
-  content.hidden = false;
-
-  const { tag, message } = interpretScore(score);
-  document.getElementById("scoreTag").textContent = tag;
-  document.getElementById("insightText").textContent = message;
-
-  animateRing(score);
-  animateCounter(document.getElementById("scoreValue"), score);
-  renderSummary(data);
-
-  document.getElementById("resultCard").scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
-/* ---------------------------------------------------------------------- */
-/* Form submission                                                        */
-/* ---------------------------------------------------------------------- */
-let isSubmitting = false;
-
-async function handleSubmit(event) {
-  event.preventDefault();
-  if (isSubmitting) return;
-
-  const form = event.target;
-  const apiNote = document.getElementById("apiNote");
-  apiNote.classList.remove("is-visible");
-  apiNote.textContent = "";
-
-  const { valid, data } = validateForm(form);
-  if (!valid) {
-    const firstError = form.querySelector(".has-error input, .has-error select");
-    if (firstError) firstError.focus({ preventScroll: false });
+/**
+ * Animate the score number smoothly from 0 to target score using cubic ease-out.
+ */
+function animateScoreValue(targetScore, duration = 850) {
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (prefersReducedMotion) {
+    resultScore.textContent = targetScore.toFixed(2);
     return;
   }
 
-  const button = document.getElementById("predictBtn");
-  const loadingText = document.getElementById("loadingText");
+  const startTime = performance.now();
+  const startValue = 0;
 
-  isSubmitting = true;
-  button.disabled = true;
-  button.classList.add("is-loading");
-  loadingText.classList.add("is-visible");
+  function step(currentTime) {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    // Cubic ease-out
+    const easeOut = 1 - Math.pow(1 - progress, 3);
+    const current = startValue + (targetScore - startValue) * easeOut;
 
-  try {
-    const response = await fetch(`${API_URL}/predict`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
+    resultScore.textContent = current.toFixed(2);
 
-    if (!response.ok) {
-      let detail = "The prediction server returned an error. Please check your input and try again.";
-      try {
-        const errorBody = await response.json();
-        if (errorBody && errorBody.detail) {
-          detail = typeof errorBody.detail === "string" ? errorBody.detail : "Please check your input and try again.";
-        }
-      } catch (_) {
-        /* response had no JSON body */
-      }
-      throw new Error(detail);
-    }
-
-    const result = await response.json();
-    if (typeof result.predicted_mental_health_score !== "number") {
-      throw new Error("Received an unexpected response from the prediction server.");
-    }
-
-    renderResult(result.predicted_mental_health_score, data);
-  } catch (err) {
-    if (err instanceof TypeError) {
-      // fetch network failure — server unreachable / CORS / offline
-      apiNote.textContent = "Unable to connect to the prediction server. Please make sure the FastAPI server is running.";
+    if (progress < 1) {
+      requestAnimationFrame(step);
     } else {
-      apiNote.textContent = err.message || "Something went wrong while generating your score. Please try again.";
+      resultScore.textContent = targetScore.toFixed(2);
     }
-    apiNote.classList.add("is-visible");
-    showToast(apiNote.textContent, "error");
-  } finally {
-    isSubmitting = false;
-    button.disabled = false;
-    button.classList.remove("is-loading");
-    loadingText.classList.remove("is-visible");
+  }
+
+  requestAnimationFrame(step);
+}
+
+function showResult(score) {
+  const info    = getScoreInfo(score);
+  const percent = Math.min(Math.max((score / 10) * 100, 0), 100);
+
+  // Initialize bar at 0% before revealing, then expand smoothly
+  resultBarFill.style.width           = "0%";
+  resultBarFill.style.backgroundColor = info.color;
+
+  // Insight
+  resultInsight.textContent = info.message;
+  resultInsight.className   = `result__insight result__insight--${info.level}`;
+
+  // Show
+  resultArea.hidden = false;
+
+  // Animate score counter
+  animateScoreValue(score);
+
+  // Smoothly expand bar fill with double-rAF for reliable CSS transition trigger
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      resultBarFill.style.width = `${percent}%`;
+    });
+  });
+
+  // Scroll into view
+  resultArea.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function hideResult() {
+  resultArea.hidden = true;
+  resultBarFill.style.width = "0%";
+}
+
+// ================================================================
+//  UI State Helpers
+// ================================================================
+
+function setLoading(isLoading) {
+  if (isLoading) {
+    submitBtn.classList.add("btn--loading");
+    submitBtn.disabled = true;
+  } else {
+    submitBtn.classList.remove("btn--loading");
+    submitBtn.disabled = false;
   }
 }
 
-document.getElementById("predictForm").addEventListener("submit", handleSubmit);
+function showFormError(message) {
+  formErrorText.textContent = message;
+  formError.hidden = false;
+}
 
-// Clear individual field errors as the user corrects them.
-document.querySelectorAll("#predictForm input, #predictForm select").forEach((el) => {
-  el.addEventListener("input", () => clearFieldError(el.name));
-  el.addEventListener("change", () => clearFieldError(el.name));
+function hideFormError() {
+  formError.hidden = true;
+  formErrorText.textContent = "";
+}
+
+// ================================================================
+//  Event Handlers
+// ================================================================
+
+// Live validation — clear error on change
+for (const id of Object.keys(FIELDS)) {
+  const el = document.getElementById(id);
+  el.addEventListener("input", () => {
+    const errorEl = document.getElementById(`${id}-error`);
+    el.classList.remove("field__input--invalid", "field__input--shake");
+    errorEl.textContent = "";
+  });
+}
+
+// Submit
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  hideFormError();
+  hideResult();
+
+  if (!validateAll()) return;
+
+  const payload = buildPayload();
+
+  setLoading(true);
+
+  try {
+    const data = await predict(payload);
+    showResult(data.predicted_mental_health_score);
+  } catch (err) {
+    if (err instanceof TypeError && err.message === "Failed to fetch") {
+      showFormError("Could not reach the server. Please check that the API is running and try again.");
+    } else {
+      showFormError(err.message || "An unexpected error occurred.");
+    }
+  } finally {
+    setLoading(false);
+  }
 });
+
+// Reset
+resetBtn.addEventListener("click", () => {
+  form.reset();
+  hideResult();
+  hideFormError();
+
+  // Clear all field errors
+  for (const id of Object.keys(FIELDS)) {
+    const el      = document.getElementById(id);
+    const errorEl = document.getElementById(`${id}-error`);
+    el.classList.remove("field__input--invalid", "field__input--shake");
+    errorEl.textContent = "";
+  }
+});
+
+// New prediction button
+newPredBtn.addEventListener("click", () => {
+  hideResult();
+  document.getElementById("predictor").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+// ================================================================
+//  Scroll Reveal Animations
+// ================================================================
+
+function setupScrollReveal() {
+  const targets = document.querySelectorAll(".reveal-on-scroll");
+  if (!targets.length) return;
+
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (prefersReducedMotion || !("IntersectionObserver" in window)) {
+    targets.forEach((el) => el.classList.add("is-revealed"));
+    return;
+  }
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("is-revealed");
+          observer.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.12, rootMargin: "0px 0px -40px 0px" }
+  );
+
+  targets.forEach((el) => observer.observe(el));
+}
+
+// Initialize on DOM ready
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", setupScrollReveal);
+} else {
+  setupScrollReveal();
+}
