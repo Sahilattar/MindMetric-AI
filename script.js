@@ -4,7 +4,7 @@
    ========================================================================== */
 
 // Backend base URL — change this single value when deploying.
-const API_URL = "http://127.0.0.1:8000";
+const API_URL = "https://mindmetric-ai-d3in.onrender.com";
 
 /* ---------------------------------------------------------------------- */
 /* Mobile navigation                                                      */
