@@ -1,0 +1,6 @@
+Pandas
+Scikit-learn
+Joblib
+FastAPI
+Pydantic
+uvicorn
