@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MindScore AI — script.js
+   MindMetric-AI — script.js
    Handles: mobile nav, scroll-reveal, form validation, API call, result render
    ========================================================================== */
 
@@ -143,30 +143,33 @@ function validateForm(form) {
 const RING_CIRCUMFERENCE = 2 * Math.PI * 86; // r = 86
 
 function interpretScore(score) {
+  // A single monochrome stroke color keeps the ring consistent with the
+  // black & white theme — the tier is communicated through the label text,
+  // not through color-coding.
   if (score >= 8) {
     return {
       tag: "Excellent",
-      color: "#1f9d6f",
+      color: "#111111",
       message: "Your predicted score indicates a generally positive mental-health profile based on the information provided.",
     };
   }
   if (score >= 6) {
     return {
       tag: "Good",
-      color: "#1fb8b0",
+      color: "#111111",
       message: "Your predicted score indicates a generally positive mental-health profile based on the information provided.",
     };
   }
   if (score >= 4) {
     return {
       tag: "Moderate",
-      color: "#d98f2a",
+      color: "#111111",
       message: "Your predicted score suggests some areas of your lifestyle may deserve additional attention.",
     };
   }
   return {
     tag: "Needs attention",
-    color: "#d64545",
+    color: "#111111",
     message: "Your predicted score suggests that some lifestyle or stress-related factors may need attention. Consider speaking with a qualified professional if you are concerned.",
   };
 }
