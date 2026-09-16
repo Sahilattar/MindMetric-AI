@@ -46,7 +46,7 @@ class PredictionResponse(BaseModel):
 
 @app.get('/')
 def greet():
-    return {'Welcome To My Project'}
+    return {'MindMetrics-AI'}
 
 
 @app.post('/predict', response_model=PredictionResponse) #6.77777
