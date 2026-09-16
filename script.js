@@ -1,5 +1,5 @@
 /* ================================================================
-   MindLens — Application Logic
+   MindMetrics-AI — Application Logic
    ================================================================ */
 
 // ─── Configuration ───
@@ -16,6 +16,68 @@ const resultScore   = document.getElementById("result-score");
 const resultBarFill = document.getElementById("result-bar-fill");
 const resultInsight = document.getElementById("result-insight");
 const newPredBtn    = document.getElementById("new-prediction-btn");
+const heroTagline   = document.getElementById("hero-tagline");
+const resultBadge   = document.getElementById("result-badge");
+const resultTipText = document.getElementById("result-tip-text");
+
+// ─── Dynamic Content Collections ───
+const TAGLINES = [
+  "Because your screen time already knows too much about you. 👀",
+  "Your phone knows your habits. Now let the ML model judge them. 😭",
+  "More scrolling, more studying, or somehow both? Let's see what the model thinks. 👀",
+  "No therapist was replaced in the making of this prediction.",
+  "Your data has entered the chat. 🤖",
+  "Let's ask the ML model before we blame the semester. 📚",
+];
+
+const MOTIVATIONAL_MESSAGES = [
+  "Look at you! Your habits are giving main-character energy. Keep taking care of yourself and don't forget to celebrate the small wins. 🚀",
+  "Keep going — future you is already proud. 🚀",
+  "Your current habits are looking pretty solid. Keep the streak alive!",
+  "Apparently, you're doing something right. Don't let the semester find out. 😎",
+  "Small healthy habits today = fewer 'I should've' moments tomorrow.",
+  "Great balance! You're proving it's possible to study, sleep, and stay sane. 🌟",
+  "Habit score looking strong. Keep protecting your peace and downtime.",
+];
+
+const MEDIUM_MESSAGES = [
+  "You're somewhere in the middle — basically the 'work in progress' section. 😄 A little more sleep, movement, and screen-time balance could make a difference.",
+  "Not bad, not perfect — basically the classic student experience. 😭",
+  "You're doing okay. Maybe give your sleep schedule and screen time a little attention.",
+  "A few small changes could turn 'I'm surviving' into 'I'm thriving.'",
+  "Balance is the goal. Your phone doesn't need to be your roommate.",
+  "Solid foundation, but there's room to breathe. Don't let study sprints drain your battery.",
+  "Hanging in there well, but remember to recharge before your battery hits 1%. 🔋",
+];
+
+const SUPPORTIVE_MESSAGES = [
+  "Looks like your current habits may need a little extra care. Take things one step at a time, prioritize sleep and breaks, and talk to someone you trust if you're struggling. You've got this. ❤️",
+  "University life is demanding, and burnout is real. Remember that your wellbeing matters far more than any deadline.",
+  "Take a deep breath. Today is a great day to pause, recalibrate your routine, and put your health first.",
+  "It’s completely okay to ask for support or ease your load. Small, gentle adjustments can make a big difference.",
+  "Give yourself some grace. Rest isn't something you have to earn — it's essential fuel. Take care of yourself today. 💙",
+  "Every busy season passes, but your health comes first. Give yourself permission to disconnect and rest tonight.",
+];
+
+const TIPS = [
+  "Try putting your phone away 30 minutes before bed tonight. 📵",
+  "Take a 10-minute walk and give your brain a loading screen. 🚶",
+  "Drink some water. Your brain isn't running on Wi-Fi. 💧",
+  "Take a short study break. Even CPUs need cooling. 🤖",
+  "Message a friend. Human connection > endless scrolling. 💬",
+  "Stretch your shoulders and unclench your jaw — you're holding tension right now. 🧘",
+  "Step outside for 5 minutes of sunlight before diving into your next task. ☀️",
+];
+
+function getRandomItem(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function initTagline() {
+  if (heroTagline) {
+    heroTagline.textContent = getRandomItem(TAGLINES);
+  }
+}
 
 // ─── Field Definitions ───
 // Maps field IDs to their validation rules
@@ -176,27 +238,31 @@ async function predict(payload) {
 // ================================================================
 
 /**
- * Map a score (assumed 0–10 scale) to a color and insight message.
+ * Map a score (0–10 scale) to badge, color, level, and dynamic message.
+ * Higher score indicates higher wellbeing.
  */
 function getScoreInfo(score) {
-  if (score <= 3.5) {
+  if (score >= 7.0) {
     return {
-      color: "#10b981", // green
+      badge: "Looking Good 🌱",
       level: "good",
-      message: `A score of ${score} suggests relatively positive mental wellbeing based on the provided inputs. The lifestyle and usage patterns appear balanced.`,
+      color: "#10b981", // green
+      message: getRandomItem(MOTIVATIONAL_MESSAGES),
     };
   }
-  if (score <= 6.5) {
+  if (score >= 4.0) {
     return {
-      color: "#f59e0b", // amber
+      badge: "Room to Improve 🌤️",
       level: "medium",
-      message: `A score of ${score} indicates a moderate level of mental health strain. Some factors in the provided inputs may warrant attention.`,
+      color: "#f59e0b", // amber
+      message: getRandomItem(MEDIUM_MESSAGES),
     };
   }
   return {
-    color: "#ef4444", // red
+    badge: "Take Some Time for Yourself 💙",
     level: "low",
-    message: `A score of ${score} suggests elevated mental health strain based on the provided inputs. Multiple lifestyle or usage factors may be contributing.`,
+    color: "#3b82f6", // soothing sky blue
+    message: getRandomItem(SUPPORTIVE_MESSAGES),
   };
 }
 
@@ -236,13 +302,24 @@ function showResult(score) {
   const info    = getScoreInfo(score);
   const percent = Math.min(Math.max((score / 10) * 100, 0), 100);
 
+  // Interpretation badge
+  if (resultBadge) {
+    resultBadge.textContent = info.badge;
+    resultBadge.className   = `result__badge result__badge--${info.level}`;
+  }
+
   // Initialize bar at 0% before revealing, then expand smoothly
   resultBarFill.style.width           = "0%";
   resultBarFill.style.backgroundColor = info.color;
 
-  // Insight
+  // Dynamic insight message
   resultInsight.textContent = info.message;
   resultInsight.className   = `result__insight result__insight--${info.level}`;
+
+  // One small thing to try
+  if (resultTipText) {
+    resultTipText.textContent = getRandomItem(TIPS);
+  }
 
   // Show
   resultArea.hidden = false;
@@ -381,8 +458,13 @@ function setupScrollReveal() {
 }
 
 // Initialize on DOM ready
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", setupScrollReveal);
-} else {
+function initApp() {
+  initTagline();
   setupScrollReveal();
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initApp);
+} else {
+  initApp();
 }

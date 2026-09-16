@@ -1,5 +1,5 @@
 /* ================================================================
-   MindLens — Style System
+   MindMetrics-AI — Style System
    ================================================================ */
 
 /* ─── Design Tokens ─── */
@@ -353,6 +353,15 @@ button, input, select, textarea {
   animation: heroFadeUp 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both;
 }
 
+.hero__tagline {
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-semibold);
+  color: var(--color-primary);
+  margin: 0 auto var(--sp-3);
+  max-width: 580px;
+  animation: heroFadeUp 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.12s both;
+}
+
 .hero__subtitle {
   font-size: var(--fs-md);
   color: var(--color-text-secondary);
@@ -488,6 +497,34 @@ button, input, select, textarea {
    ================================================================ */
 .predictor {
   padding: var(--sp-12) 0 var(--sp-20);
+}
+
+.predictor__note {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+  margin-bottom: var(--sp-2);
+  padding: var(--sp-2) var(--sp-4);
+  background: rgba(79, 110, 247, 0.05);
+  border: 1px dashed rgba(79, 110, 247, 0.25);
+  border-radius: var(--radius-full);
+  font-size: var(--fs-xs);
+}
+
+.predictor__note-humor {
+  font-weight: var(--fw-medium);
+  color: var(--color-text);
+}
+
+.predictor__note-divider {
+  color: var(--color-border);
+}
+
+.predictor__note-disclaimer {
+  color: var(--color-text-muted);
 }
 
 .form {
@@ -675,6 +712,42 @@ button, input, select, textarea {
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.result__badge-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--sp-4);
+}
+
+.result__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 5px 16px;
+  border-radius: var(--radius-full);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.02em;
+  transition: all 0.3s ease;
+}
+
+.result__badge--good {
+  background: var(--color-success-light);
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.result__badge--medium {
+  background: var(--color-warning-light);
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.result__badge--low {
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
 .result__heading {
   font-size: var(--fs-sm);
   font-weight: var(--fw-semibold);
@@ -740,13 +813,13 @@ button, input, select, textarea {
   font-size: var(--fs-sm);
   line-height: 1.6;
   text-align: left;
-  margin-bottom: var(--sp-6);
+  margin-bottom: var(--sp-5);
 }
 
 .result__insight--low {
-  background: var(--color-danger-light);
-  color: #b91c1c;
-  border: 1px solid #fecaca;
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
 }
 
 .result__insight--medium {
@@ -759,6 +832,51 @@ button, input, select, textarea {
   background: var(--color-success-light);
   color: #065f46;
   border: 1px solid #a7f3d0;
+}
+
+/* One small thing to try box */
+.result__tip-box {
+  background: #f8fafc;
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  padding: var(--sp-4);
+  text-align: left;
+  margin-bottom: var(--sp-5);
+}
+
+.result__tip-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-1);
+}
+
+.result__tip-icon {
+  font-size: 0.95rem;
+}
+
+.result__tip-title {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.result__tip-text {
+  font-size: var(--fs-sm);
+  color: var(--color-text);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.result__disclaimer {
+  font-size: var(--fs-xs);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin: 0 auto var(--sp-6);
+  max-width: 440px;
 }
 
 /* ================================================================

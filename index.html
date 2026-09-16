@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Predict student mental health scores based on social media usage, study habits, and lifestyle factors using machine learning." />
-  <title>MindLens — Student Mental Health Predictor</title>
+  <title>MindMetrics-AI — Student Mental Health Predictor</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -15,13 +15,13 @@
   <!-- ─── Header ─── -->
   <header class="header" role="banner">
     <div class="header__inner container">
-      <a href="/" class="header__brand" aria-label="MindLens home">
+      <a href="/" class="header__brand" aria-label="MindMetrics-AI home">
         <svg class="header__logo" width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
           <circle cx="14" cy="14" r="13" stroke="currentColor" stroke-width="2"/>
           <path d="M9 14c0-2.76 2.24-5 5-5s5 2.24 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           <circle cx="14" cy="14" r="2" fill="currentColor"/>
         </svg>
-        <span class="header__name">MindLens</span>
+        <span class="header__name">MindMetrics-AI</span>
       </a>
       <nav class="header__nav" aria-label="Primary">
         <a href="#predictor" class="header__link">Predictor</a>
@@ -37,6 +37,7 @@
       <div class="container hero__inner">
         <span class="hero__badge"><span class="badge__dot" aria-hidden="true"></span>ML-Powered Analysis</span>
         <h1 id="hero-title" class="hero__title">Student Mental Health<br />Score Predictor</h1>
+        <p id="hero-tagline" class="hero__tagline">Because your screen time already knows too much about you. 👀</p>
         <p class="hero__subtitle">
           Predict a student's mental health score based on their social media usage,
           study patterns, and lifestyle habits.
@@ -53,17 +54,17 @@
           <div class="step-card reveal-on-scroll" style="--reveal-delay: 0.05s">
             <span class="step-card__number">1</span>
             <h3 class="step-card__title">Enter Details</h3>
-            <p class="step-card__desc">Provide demographic, social media usage, and lifestyle information.</p>
+            <p class="step-card__desc">Tell us about your habits and daily routines. No judgment... probably. 👀</p>
           </div>
           <div class="step-card reveal-on-scroll" style="--reveal-delay: 0.15s">
             <span class="step-card__number">2</span>
             <h3 class="step-card__title">Run Prediction</h3>
-            <p class="step-card__desc">The ML model analyzes the inputs and computes a mental health score.</p>
+            <p class="step-card__desc">Let the ML model crunch the numbers, analyze patterns, and do its thing. 🤖</p>
           </div>
           <div class="step-card reveal-on-scroll" style="--reveal-delay: 0.25s">
             <span class="step-card__number">3</span>
             <h3 class="step-card__title">View Result</h3>
-            <p class="step-card__desc">Receive a predicted score with an interpretive summary.</p>
+            <p class="step-card__desc">Get your predicted score along with encouraging guidance and a healthy suggestion.</p>
           </div>
         </div>
       </div>
@@ -73,7 +74,12 @@
     <section id="predictor" class="predictor" aria-labelledby="predictor-title">
       <div class="container">
         <h2 id="predictor-title" class="section-title">Mental Health Predictor</h2>
-        <p class="section-desc">Fill in the student's information below, then click <strong>Predict Score</strong>.</p>
+        <p class="section-desc">Fill in the details below and let our ML model take a data-driven guess at your mental health score.</p>
+        <div class="predictor__note">
+          <span class="predictor__note-humor">Be honest. The model can't be bribed. 😭</span>
+          <span class="predictor__note-divider" aria-hidden="true">•</span>
+          <span class="predictor__note-disclaimer">ML-based estimate · Not a clinical diagnosis</span>
+        </div>
 
         <form id="prediction-form" class="form reveal-on-scroll" style="--reveal-delay: 0.1s" novalidate>
 
@@ -319,6 +325,10 @@
         <!-- ─── Result Area ─── -->
         <div id="result-area" class="result" hidden>
           <div class="result__card">
+            <div class="result__badge-wrapper">
+              <span id="result-badge" class="result__badge">Looking Good 🌱</span>
+            </div>
+
             <h3 class="result__heading">Predicted Mental Health Score</h3>
 
             <div class="result__score-wrapper">
@@ -337,6 +347,20 @@
 
             <div id="result-insight" class="result__insight"></div>
 
+            <!-- One Small Thing to Try -->
+            <div id="result-tip-box" class="result__tip-box">
+              <div class="result__tip-header">
+                <span class="result__tip-icon" aria-hidden="true">💡</span>
+                <span class="result__tip-title">One small thing to try</span>
+              </div>
+              <p id="result-tip-text" class="result__tip-text"></p>
+            </div>
+
+            <!-- ML Estimate Disclaimer -->
+            <p class="result__disclaimer">
+              This result is a machine-learning estimate based on the information provided, not a medical diagnosis.
+            </p>
+
             <button type="button" id="new-prediction-btn" class="btn btn--secondary">New Prediction</button>
           </div>
         </div>
@@ -349,7 +373,7 @@
   <!-- ─── Footer ─── -->
   <footer class="footer" role="contentinfo">
     <div class="container footer__inner">
-      <p class="footer__text">MindLens — Student Mental Health Predictor</p>
+      <p class="footer__text">MindMetrics-AI — Student Mental Health Predictor</p>
       <p class="footer__text footer__text--muted">This tool provides estimated scores from a machine learning model. It is not a clinical diagnosis.</p>
     </div>
   </footer>
